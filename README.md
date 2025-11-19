@@ -1,18 +1,22 @@
 # RAG_Forge
 
-基於 ChromaDB 和 Groq API 的 RAG 系統實作
+A RAG system implementation based on ChromaDB and the Groq API.
 
-## 功能
-- 語義切割 (Semantic Chunking)
-- 向量資料庫整合
-- LLM 查詢介面
+## Features
+Semantic Chunking
 
-## 技術棧
-- Python 3.11
-- ChromaDB
-- Docker
+Vector Database Integration
 
-## 使用方式
+LLM Query Interface
+
+## Tech Stack
+Python 3.10
+
+ChromaDB
+
+Docker
+
+## Usage
 \```bash
 docker pull tonyhsu/rag:v0
 docker run --rm tonyhsu/rag:v0

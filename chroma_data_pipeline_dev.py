@@ -10,13 +10,10 @@ from groq import Groq
 from dotenv import load_dotenv
 from util import read_data, download_data
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 
-def chunk_text(
-        text: str,
-        chunk_size: int = 500,
-        overlap: int = 50) -> List[str]:
+def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
     """
     Split text into overlapping chunks (original function).
 
@@ -48,7 +45,7 @@ def chunk_text_semantic(
     target_chunk_size: int = 500,
     api_key: Optional[str] = None,
     model: str = "llama-3.1-8b-instant",
-    rate_limit_delay: float = 3.0
+    rate_limit_delay: float = 3.0,
 ) -> List[str]:
     """
     Split text into semantic chunks using LLM with rate limiting.
@@ -97,34 +94,35 @@ Output the chunks now:"""
 
     try:
         print(
-            f"Calling LLM API at {datetime.now().strftime('%H:%M:%S')}...",
-            flush=True)
+            f"Calling LLM API at {datetime.now().strftime('%H:%M:%S')}...", flush=True
+        )
 
         # Call LLM
         completion = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
-            max_tokens=8000
+            max_tokens=8000,
         )
 
         response = completion.choices[0].message.content
 
         # Actual usage of token
-        if hasattr(completion, 'usage'):
+        if hasattr(completion, "usage"):
             print(f"API call successful")
             print(f"  - Input tokens: {completion.usage.prompt_tokens}")
             print(f"  - Output tokens: {completion.usage.completion_tokens}")
             print(f"  - Total tokens: {completion.usage.total_tokens}")
 
         # Parse the response
-        chunks = [chunk.strip()
-                  for chunk in response.split("===CHUNK_SEPARATOR===")]
+        chunks = [chunk.strip() for chunk in response.split("===CHUNK_SEPARATOR===")]
         chunks = [chunk for chunk in chunks if chunk]
 
         # Validate chunks
         if not chunks:
-            print("Warning: LLM returned no chunks, falling back to fixed-size chunking")
+            print(
+                "Warning: LLM returned no chunks, falling back to fixed-size chunking"
+            )
             return chunk_text(text, chunk_size=target_chunk_size, overlap=50)
 
         # Check if total length is preserved
@@ -133,17 +131,20 @@ Output the chunks now:"""
 
         if abs(total_chunk_length - original_length) > original_length * 0.1:
             print(
-                f"Warning: Chunk length mismatch (original: {original_length}, chunks: {total_chunk_length})")
+                f"Warning: Chunk length mismatch (original: {original_length}, chunks: {total_chunk_length})"
+            )
             print("Falling back to fixed-size chunking...")
             return chunk_text(text, chunk_size=target_chunk_size, overlap=50)
 
         print(
-            f"Semantic chunking created {len(chunks)} chunks (avg size: {total_chunk_length//len(chunks)} chars)")
+            f"Semantic chunking created {len(chunks)} chunks (avg size: {total_chunk_length//len(chunks)} chars)"
+        )
 
         # Rate limiting:
         if rate_limit_delay > 0:
             print(
-                f"Rate limiting: waiting {rate_limit_delay} seconds before next API call...")
+                f"Rate limiting: waiting {rate_limit_delay} seconds before next API call..."
+            )
             time.sleep(rate_limit_delay)
 
         return chunks
@@ -163,7 +164,7 @@ def process_dataset_for_rag(
     overlap: int = 50,
     use_semantic_chunking: bool = False,
     groq_api_key: Optional[str] = None,
-    llm_model: str = "llama-3.3-70b-versatile"
+    llm_model: str = "llama-3.3-70b-versatile",
 ) -> Tuple[List[str], List[Dict]]:
     """
     Process dataset into chunks suitable for RAG (Retrieval-Augmented Generation).
@@ -186,8 +187,7 @@ def process_dataset_for_rag(
     all_metadata = []
 
     chunking_method = "SEMANTIC (LLM-based)" if use_semantic_chunking else "FIXED-SIZE"
-    print(
-        f"\nProcessing {len(df)} records using {chunking_method} chunking...")
+    print(f"\nProcessing {len(df)} records using {chunking_method} chunking...")
     print(f"Content column: '{content_column}'")
 
     if metadata_columns:
@@ -204,7 +204,7 @@ def process_dataset_for_rag(
                 content,
                 target_chunk_size=chunk_size,
                 api_key=groq_api_key,
-                model=llm_model
+                model=llm_model,
             )
         else:
             chunks = chunk_text(content, chunk_size, overlap)
@@ -217,14 +217,14 @@ def process_dataset_for_rag(
                 "chunk_index": chunk_idx,
                 "total_chunks": len(chunks),
                 "source_row": int(idx),
-                "chunking_method": chunking_method  # 記錄使用的切割方法
+                "chunking_method": chunking_method,  # 記錄使用的切割方法
             }
 
             # Add ID if specified
             if id_column and id_column in row:
-                metadata["source_id"] = str(
-                    row[id_column]) if pd.notna(
-                    row[id_column]) else ""
+                metadata["source_id"] = (
+                    str(row[id_column]) if pd.notna(row[id_column]) else ""
+                )
 
             # Add other metadata columns
             if metadata_columns:
@@ -249,8 +249,7 @@ def process_dataset_for_rag(
 
 
 def create_or_get_collection(
-    client: chromadb.PersistentClient,
-    db_name: str
+    client: chromadb.PersistentClient, db_name: str
 ) -> chromadb.Collection:
     """
     Get existing collection or create new one if it doesn't exist.
@@ -277,7 +276,7 @@ def add_chunks_to_db(
     collection: chromadb.Collection,
     chunks: List[str],
     metadata: List[Dict],
-    batch_size: int = 5000
+    batch_size: int = 5000,
 ) -> None:
     """
     Add text chunks to ChromaDB collection in batches.
@@ -296,11 +295,7 @@ def add_chunks_to_db(
         batch_metadata = metadata[i:batch_end]
         batch_ids = [f"chunk_{j}" for j in range(i, batch_end)]
 
-        collection.add(
-            documents=batch_chunks,
-            metadatas=batch_metadata,
-            ids=batch_ids
-        )
+        collection.add(documents=batch_chunks, metadatas=batch_metadata, ids=batch_ids)
 
         print(f"Added {batch_end} / {total_chunks} chunks")
 
@@ -312,15 +307,15 @@ def main(
     create_db: bool = False,
     debugging_process_dataset: bool = True,
     source: str = "jrobischon/wikipedia-movie-plots",
-    metadata_columns: List[str] = ['category', 'filename', 'title'],
+    metadata_columns: List[str] = ["category", "filename", "title"],
     content_column: str = "content",
     datapath: str = "_.csv",
     db_name: str = "test",
-    readdf_sep: str = '\t',
+    readdf_sep: str = "\t",
     db_path: str = "./chroma_db",
     use_semantic_chunking: bool = False,
     groq_api_key: Optional[str] = None,
-    llm_model: str = "llama-3.3-70b-versatile"
+    llm_model: str = "llama-3.3-70b-versatile",
 ):
     """
     Main function to orchestrate data processing and database creation.
@@ -356,7 +351,7 @@ def main(
             overlap=50,
             use_semantic_chunking=use_semantic_chunking,
             groq_api_key=groq_api_key,
-            llm_model=llm_model
+            llm_model=llm_model,
         )
 
         print("\n--- Sample Chunks (first 5) ---")
@@ -385,7 +380,7 @@ def main(
             overlap=50,
             use_semantic_chunking=use_semantic_chunking,
             groq_api_key=groq_api_key,
-            llm_model=llm_model
+            llm_model=llm_model,
         )
 
         client = chromadb.PersistentClient(path=db_path)
@@ -409,11 +404,11 @@ if __name__ == "__main__":
         download=False,
         create_db=False,
         groq_api_key=groq_apikey,
-        metadata_columns=['category', 'filename', 'title'],
+        metadata_columns=["category", "filename", "title"],
         content_column="content",
         datapath="bbc-news.csv",
         db_name="bbc_news_semantic",
-        readdf_sep='\t',
+        readdf_sep="\t",
         db_path="./chroma_db",
-        llm_model="llama-3.1-8b-instant"
+        llm_model="llama-3.1-8b-instant",
     )

@@ -11,17 +11,18 @@ import os
 import chromadb
 from dotenv import load_dotenv
 import requests
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, Dict, Any
 from Similarity_Search import custom_similarity_search, compare_search_results
 from util import SimpleMetadataFormatter
 
 # Set output encoding
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 
 # ============================================================================
 # RAG Core Functions
 # ============================================================================
+
 
 def create_rag_prompt(
     query: str,
@@ -30,7 +31,7 @@ def create_rag_prompt(
     context_intro: str = "Here is the relevant content:",
     custom_instruction: Optional[str] = None,
     separator: str = "-" * 50,
-    debug: bool = False
+    debug: bool = False,
 ) -> str:
     """
     Generate RAG prompt
@@ -49,16 +50,15 @@ def create_rag_prompt(
     """
 
     # Check search results
-    if not search_results or 'documents' not in search_results:
-        raise ValueError(
-            "Invalid search_results format: missing 'documents' field")
+    if not search_results or "documents" not in search_results:
+        raise ValueError("Invalid search_results format: missing 'documents' field")
 
-    if not search_results['documents'] or not search_results['documents'][0]:
+    if not search_results["documents"] or not search_results["documents"][0]:
         print("Warning: No documents found")
         return f"{context_intro}\n\n[No relevant data found]\n\nQuestion: {query}\n\nCannot answer this question."
 
-    documents = search_results['documents'][0]
-    metadatas = search_results['metadatas'][0]
+    documents = search_results["documents"][0]
+    metadatas = search_results["metadatas"][0]
 
     # Debug: Show search overview
     if debug:
@@ -68,11 +68,11 @@ def create_rag_prompt(
         print(f"Query: {query}")
         print(f"Documents found: {len(documents)}")
 
-        if 'distances' in search_results and search_results['distances']:
-            distances = search_results['distances'][0]
+        if "distances" in search_results and search_results["distances"]:
+            distances = search_results["distances"][0]
             print("\nSimilarity scores (lower = more similar):")
             for i, dist in enumerate(distances, 1):
-                similarity = max(0, (1 - dist) * 100)
+                max(0, (1 - dist) * 100)
                 print(f"  Doc {i}: {dist:.4f}")
             print()
 
@@ -105,10 +105,10 @@ def create_rag_prompt(
                 context += f"Title: {metadata.get('Title', 'N/A')}\n"
         else:
             # Default: show all fields except internal ones
-            exclude = {'chunk_index', 'total_chunks', 'source_row'}
+            exclude = {"chunk_index", "total_chunks", "source_row"}
             for key, value in metadata.items():
                 if key not in exclude and value:
-                    name = key.replace('_', ' ').title()
+                    name = key.replace("_", " ").title()
                     context += f"{name}: {value}\n"
 
         context += f"Content: {doc}\n"
@@ -151,7 +151,7 @@ def call_groq_llm(
     model: str = "llama-3.1-8b-instant",
     max_tokens: int = 1024,
     temperature: float = 0.7,
-    debug: bool = False
+    debug: bool = False,
 ) -> str:
     """
     Call Groq LLM API
@@ -181,16 +181,13 @@ def call_groq_llm(
         print(f"Estimated tokens: ~{len(prompt) // 4}")
         print()
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     data = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": temperature,
-        "max_tokens": max_tokens
+        "max_tokens": max_tokens,
     }
 
     try:
@@ -198,15 +195,15 @@ def call_groq_llm(
             "https://api.groq.com/openai/v1/chat/completions",
             json=data,
             headers=headers,
-            timeout=30
+            timeout=30,
         )
 
         if response.status_code == 200:
-            answer = response.json()['choices'][0]['message']['content']
+            answer = response.json()["choices"][0]["message"]["content"]
 
             # Debug: Show response info
             if debug:
-                usage = response.json().get('usage', {})
+                usage = response.json().get("usage", {})
                 print("[DEBUG] API Response Success")
                 print("-" * 80)
                 print(f"Response length: {len(answer)} chars")
@@ -243,7 +240,7 @@ def rag_query(
     custom_instruction: Optional[str] = None,
     use_custom_search: bool = False,
     similarity_metric: str = "cosine",
-    debug: bool = False
+    debug: bool = False,
 ) -> Dict[str, Any]:
     """
     Complete RAG query pipeline
@@ -278,14 +275,15 @@ def rag_query(
         if use_custom_search:
             if debug:
                 print(
-                    f"[DEBUG] Using CUSTOM similarity search (metric={similarity_metric})...")
+                    f"[DEBUG] Using CUSTOM similarity search (metric={similarity_metric})..."
+                )
 
             results = custom_similarity_search(
                 query=query,
                 collection=collection,
                 n_results=n_results,
                 metric=similarity_metric,
-                debug=debug
+                debug=debug,
             )
             search_method = f"Custom ({similarity_metric})"
 
@@ -294,20 +292,17 @@ def rag_query(
             if debug:
                 print(f"[DEBUG] Using BUILT-IN ChromaDB query...")
 
-            results = collection.query(
-                query_texts=[query],
-                n_results=n_results
-            )
+            results = collection.query(query_texts=[query], n_results=n_results)
             search_method = "Built-in"
 
         # Check if results found
-        if not results['documents'][0]:
+        if not results["documents"][0]:
             return {
-                'success': False,
-                'answer': None,
-                'search_results': results,
-                'error': 'No relevant documents found',
-                'search_method': search_method
+                "success": False,
+                "answer": None,
+                "search_results": results,
+                "error": "No relevant documents found",
+                "search_method": search_method,
             }
 
         # Step 2: Generate prompt
@@ -321,7 +316,7 @@ def rag_query(
             context_intro=context_intro,
             custom_instruction=custom_instruction,
             separator="=" * 60,
-            debug=debug
+            debug=debug,
         )
 
         # Step 3: Get LLM answer
@@ -331,20 +326,21 @@ def rag_query(
         answer = call_groq_llm(prompt, groq_api_key, model, debug=debug)
 
         return {
-            'success': True,
-            'answer': answer,
-            'search_results': results,
-            'error': None,
-            'stats': {
-                'documents_found': len(results['documents'][0]),
-                'prompt_length': len(prompt),
-                'answer_length': len(answer)
+            "success": True,
+            "answer": answer,
+            "search_results": results,
+            "error": None,
+            "stats": {
+                "documents_found": len(results["documents"][0]),
+                "prompt_length": len(prompt),
+                "answer_length": len(answer),
             },
-            'search_method': search_method
+            "search_method": search_method,
         }
 
     except Exception as e:
         import traceback
+
         error_msg = f"RAG query failed: {str(e)}"
 
         if debug:
@@ -352,12 +348,16 @@ def rag_query(
             print(traceback.format_exc())
 
         return {
-            'success': False,
-            'answer': None,
-            'search_results': None,
-            'error': error_msg,
-            'traceback': traceback.format_exc() if debug else None,
-            'search_method': search_method if 'search_method' in locals() else 'Unknown'}
+            "success": False,
+            "answer": None,
+            "search_results": None,
+            "error": error_msg,
+            "traceback": traceback.format_exc() if debug else None,
+            "search_method": search_method
+            if "search_method" in locals()
+            else "Unknown",
+        }
+
 
 # ============================================================================
 # Predefined Formatters
@@ -376,23 +376,18 @@ def main(
     # Database settings
     db_path="./chroma_db",
     collection_name="bbc_news",
-
     # Model settings
     model="llama-3.3-70b-versatile",
-
     # Query settings
     query="Give me some economy news",
     n_results=5,
-
     # Prompt settings
     context_intro="Here are the relevant news articles:",
     custom_instruction="Based on the news above, please answer: {query}",
-
     # Search settings
     similarity_metric="cosine",
-
     # Debug settings
-    debug=True
+    debug=True,
 ):
     """
     Main function - Tests built-in vs custom similarity search
@@ -463,7 +458,7 @@ def main(
         context_intro=context_intro,
         custom_instruction=custom_instruction,
         use_custom_search=False,  # Use built-in
-        debug=debug
+        debug=debug,
     )
 
     # ========================================================================
@@ -484,17 +479,17 @@ def main(
         custom_instruction=custom_instruction,
         use_custom_search=True,  # Use custom
         similarity_metric=similarity_metric,
-        debug=debug
+        debug=debug,
     )
 
     # ========================================================================
     # Compare Results
     # ========================================================================
-    if result_builtin['success'] and result_custom['success']:
+    if result_builtin["success"] and result_custom["success"]:
         compare_search_results(
-            builtin_results=result_builtin['search_results'],
-            custom_results=result_custom['search_results'],
-            top_n=n_results
+            builtin_results=result_builtin["search_results"],
+            custom_results=result_custom["search_results"],
+            top_n=n_results,
         )
 
     # ========================================================================
@@ -505,14 +500,14 @@ def main(
     print("=" * 80)
 
     print("\n--- Built-in Query Answer ---")
-    if result_builtin['success']:
-        print(result_builtin['answer'])
+    if result_builtin["success"]:
+        print(result_builtin["answer"])
     else:
         print(f"Failed: {result_builtin['error']}")
 
     print("\n--- Custom Search Answer ---")
-    if result_custom['success']:
-        print(result_custom['answer'])
+    if result_custom["success"]:
+        print(result_custom["answer"])
     else:
         print(f"Failed: {result_custom['error']}")
 
@@ -538,21 +533,16 @@ if __name__ == "__main__":
         # Database settings
         db_path="./chroma_db",
         collection_name="bbc_news",
-
         # Model settings
         model="llama-3.3-70b-versatile",  # or "llama-3.1-8b-instant"
-
         # Query settings
         query=questions[-1],
         n_results=5,
-
         # Prompt settings
         context_intro="Here are the relevant news articles:",
         custom_instruction=None,
-
         # Search settings
         similarity_metric="cosine",  # or "euclidean"
-
         # Debug settings
-        debug=True
+        debug=True,
     )

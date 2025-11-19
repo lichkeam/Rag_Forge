@@ -22,9 +22,8 @@ def list_chromadb_collections(db_path="./chroma_db"):
 
             if count > 0:
                 sample = collection.peek(limit=1)
-                if sample['metadatas']:
-                    print(
-                        f"   Metadata keys: {list(sample['metadatas'][0].keys())}")
+                if sample["metadatas"]:
+                    print(f"   Metadata keys: {list(sample['metadatas'][0].keys())}")
 
                 # --- Show 3 examples ---
                 print("\n   Preview first 3 items:")

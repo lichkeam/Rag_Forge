@@ -15,9 +15,9 @@ messages = [
 
 output = pipe(
     messages,
-    max_new_tokens=128,       # ★ 指定合理的輸出長度
-    do_sample=True,           # ★ 讓回覆自然
-    temperature=0.7
+    max_new_tokens=128,  # ★ 指定合理的輸出長度
+    do_sample=True,  # ★ 讓回覆自然
+    temperature=0.7,
 )
 
 print(output)

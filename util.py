@@ -1,14 +1,6 @@
-import sys
-import io
-import chromadb
 import kagglehub
 import pandas as pd
-import time
-from datetime import datetime
-from typing import List, Dict, Optional, Tuple, Any
-import os
-from groq import Groq
-from dotenv import load_dotenv
+from typing import List, Dict, Optional, Any
 
 
 # ============================================================================
@@ -28,7 +20,10 @@ class SimpleMetadataFormatter:
             exclude_fields: Fields to exclude from display
         """
         self.exclude_fields = exclude_fields or [
-            'chunk_index', 'total_chunks', 'source_row']
+            "chunk_index",
+            "total_chunks",
+            "source_row",
+        ]
 
     def format(self, metadata: Dict[str, Any]) -> str:
         """
@@ -44,14 +39,14 @@ class SimpleMetadataFormatter:
             # Skip excluded fields and empty values
             if key in self.exclude_fields:
                 continue
-            if value is None or value == '' or value == 'N/A':
+            if value is None or value == "" or value == "N/A":
                 continue
 
             # Format field name (replace underscore, capitalize)
-            display_name = key.replace('_', ' ').title()
+            display_name = key.replace("_", " ").title()
             lines.append(f"{display_name}: {value}")
 
-        return '\n'.join(lines)
+        return "\n".join(lines)
 
     def __call__(self, metadata: Dict[str, Any]) -> str:
         """Allow calling as function"""
@@ -78,9 +73,8 @@ def download_data(source: str) -> str:
 
 
 def read_data(
-        datapath: str = '_.csv',
-        sep: str = '\t',
-        debug: bool = False) -> pd.DataFrame:
+    datapath: str = "_.csv", sep: str = "\t", debug: bool = False
+) -> pd.DataFrame:
     """
     Read CSV data into pandas DataFrame.
 

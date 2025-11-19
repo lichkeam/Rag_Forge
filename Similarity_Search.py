@@ -1,16 +1,13 @@
 import chromadb
 import numpy as np
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Dict, Any
 
 # ============================================================================
 # Custom Similarity Search
 # ============================================================================
 
 
-def compute_embedding(
-    text: str,
-    embedding_function: Any
-) -> np.ndarray:
+def compute_embedding(text: str, embedding_function: Any) -> np.ndarray:
     """
     Compute embedding for a single text using ChromaDB's embedding function
     # Adopted LLM model: "all-MiniLM-L6-v2"
@@ -65,7 +62,7 @@ def custom_similarity_search(
     collection: chromadb.Collection,
     n_results: int = 5,
     metric: str = "cosine",
-    debug: bool = False
+    debug: bool = False,
 ) -> Dict[str, Any]:
     """
     Custom similarity search implementation to verify against ChromaDB's built-in query
@@ -110,22 +107,15 @@ def custom_similarity_search(
     if debug:
         print(f"[DEBUG] Retrieving all documents from collection...")
 
-    all_data = collection.get(
-        include=['embeddings', 'documents', 'metadatas']
-    )
+    all_data = collection.get(include=["embeddings", "documents", "metadatas"])
 
-    total_docs = len(all_data['ids'])
+    total_docs = len(all_data["ids"])
 
     if debug:
         print(f"  Total documents in collection: {total_docs}")
 
     if total_docs == 0:
-        return {
-            'documents': [[]],
-            'metadatas': [[]],
-            'distances': [[]],
-            'ids': [[]]
-        }
+        return {"documents": [[]], "metadatas": [[]], "distances": [[]], "ids": [[]]}
 
     # Step 3: Compute similarities for all documents
     if debug:
@@ -133,7 +123,7 @@ def custom_similarity_search(
 
     similarities = []
 
-    for i, doc_embedding in enumerate(all_data['embeddings']):
+    for i, doc_embedding in enumerate(all_data["embeddings"]):
         doc_embedding_array = np.array(doc_embedding)
 
         if metric == "cosine":
@@ -148,16 +138,12 @@ def custom_similarity_search(
             distance = euclidean_distance(query_embedding, doc_embedding_array)
 
         else:
-            raise ValueError(
-                f"Unknown metric: {metric}. Use 'cosine' or 'euclidean'")
+            raise ValueError(f"Unknown metric: {metric}. Use 'cosine' or 'euclidean'")
 
-        similarities.append({
-            'distance': distance,
-            'index': i
-        })
+        similarities.append({"distance": distance, "index": i})
 
     # Step 4: Sort by distance (lower = more similar)
-    similarities.sort(key=lambda x: x['distance'])
+    similarities.sort(key=lambda x: x["distance"])
     # sort() Small to Large
 
     # Step 5: Get top-k results
@@ -167,7 +153,8 @@ def custom_similarity_search(
         print(f"[DEBUG] Top {n_results} results:")
         for rank, item in enumerate(top_k, 1):
             print(
-                f"  Rank {rank}: distance={item['distance']:.4f}, index={item['index']}")
+                f"  Rank {rank}: distance={item['distance']:.4f}, index={item['index']}"
+            )
 
     # Step 6: Format results to match ChromaDB query format
     result_docs = []
@@ -176,24 +163,22 @@ def custom_similarity_search(
     result_ids = []
 
     for item in top_k:
-        idx = item['index']
-        result_docs.append(all_data['documents'][idx])
-        result_metas.append(all_data['metadatas'][idx])
-        result_distances.append(item['distance'])
-        result_ids.append(all_data['ids'][idx])
+        idx = item["index"]
+        result_docs.append(all_data["documents"][idx])
+        result_metas.append(all_data["metadatas"][idx])
+        result_distances.append(item["distance"])
+        result_ids.append(all_data["ids"][idx])
 
     return {
-        'documents': [result_docs],
-        'metadatas': [result_metas],
-        'distances': [result_distances],
-        'ids': [result_ids]
+        "documents": [result_docs],
+        "metadatas": [result_metas],
+        "distances": [result_distances],
+        "ids": [result_ids],
     }
 
 
 def compare_search_results(
-    builtin_results: Dict[str, Any],
-    custom_results: Dict[str, Any],
-    top_n: int = 5
+    builtin_results: Dict[str, Any], custom_results: Dict[str, Any], top_n: int = 5
 ) -> None:
     """
     Compare built-in ChromaDB query results with custom similarity search results
@@ -208,14 +193,16 @@ def compare_search_results(
     print("COMPARISON: Built-in vs Custom Similarity Search")
     print("=" * 80)
 
-    builtin_ids = builtin_results['ids'][0][:top_n]
-    custom_ids = custom_results['ids'][0][:top_n]
+    builtin_ids = builtin_results["ids"][0][:top_n]
+    custom_ids = custom_results["ids"][0][:top_n]
 
-    builtin_distances = builtin_results['distances'][0][:top_n]
-    custom_distances = custom_results['distances'][0][:top_n]
+    builtin_distances = builtin_results["distances"][0][:top_n]
+    custom_distances = custom_results["distances"][0][:top_n]
 
     print(f"\nTop {top_n} Results Comparison:\n")
-    print(f"{'Rank':<6} {'Built-in ID':<20} {'Distance':<12} | {'Custom ID':<20} {'Distance':<12} {'Match':<8}")
+    print(
+        f"{'Rank':<6} {'Built-in ID':<20} {'Distance':<12} | {'Custom ID':<20} {'Distance':<12} {'Match':<8}"
+    )
     print("-" * 90)
 
     for i in range(min(top_n, len(builtin_ids), len(custom_ids))):
@@ -229,7 +216,8 @@ def compare_search_results(
 
         # print(f"{i+1:<6} {builtin_id:<20} {builtin_dist:<12.6f} | {custom_id:<20} {custom_dist:<12.6f} {match:<8}")
         print(
-            f"{i+1:<6} {builtin_id:<20} {builtin_dist:<12.6f} | {custom_id:<20} {custom_dist:<12.6f}")
+            f"{i+1:<6} {builtin_id:<20} {builtin_dist:<12.6f} | {custom_id:<20} {custom_dist:<12.6f}"
+        )
 
         # if dist_diff > 1e-6:
         #     print(f"       Distance difference: {dist_diff:.6e}")
@@ -257,9 +245,7 @@ def compare_search_results(
 
 
 def debug_distance_calculation(
-    query: str,
-    collection: chromadb.Collection,
-    doc_index: int = 0
+    query: str, collection: chromadb.Collection, doc_index: int = 0
 ) -> None:
     """
     Debug distance calculation step by step
@@ -275,9 +261,9 @@ def debug_distance_calculation(
     query_embedding = compute_embedding(query, embedding_function)
 
     # Get document embedding
-    all_data = collection.get(include=['embeddings', 'documents', 'ids'])
-    doc_embedding = np.array(all_data['embeddings'][doc_index])
-    doc_id = all_data['ids'][doc_index]
+    all_data = collection.get(include=["embeddings", "documents", "ids"])
+    doc_embedding = np.array(all_data["embeddings"][doc_index])
+    doc_id = all_data["ids"][doc_index]
 
     print(f"Query: {query[:50]}...")
     print(f"Document ID: {doc_id}")
@@ -342,8 +328,8 @@ def debug_distance_calculation(
 
     # Find the matching document
     try:
-        matching_idx = chromadb_result['ids'][0].index(doc_id)
-        chromadb_dist = chromadb_result['distances'][0][matching_idx]
+        matching_idx = chromadb_result["ids"][0].index(doc_id)
+        chromadb_dist = chromadb_result["distances"][0][matching_idx]
         print(f"ChromaDB distance: {chromadb_dist:.6f}")
 
         print(f"\n--- Ratio Comparisons (Which equals 1.0?) ---")

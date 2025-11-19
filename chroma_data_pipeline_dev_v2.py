@@ -10,15 +10,13 @@ from groq import Groq
 from dotenv import load_dotenv
 from abc import ABC, abstractmethod
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 
 class TextChunker(ABC):
-
     @abstractmethod
     def chunk(self, text: str) -> List[str]:
         """Split text into chunks."""
-        pass
 
 
 class FixedSizeChunker(TextChunker):
@@ -61,7 +59,7 @@ class SemanticChunker(TextChunker):
         target_chunk_size: int = 500,
         api_key: Optional[str] = None,
         model: str = "llama-3.1-8b-instant",
-        rate_limit_delay: float = 3.0
+        rate_limit_delay: float = 3.0,
     ):
         """
         Args:
@@ -100,31 +98,30 @@ class SemanticChunker(TextChunker):
         try:
             print(
                 f"Calling LLM API at {datetime.now().strftime('%H:%M:%S')}...",
-                flush=True)
+                flush=True,
+            )
 
             completion = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
-                max_tokens=8000
+                max_tokens=8000,
             )
 
             response = completion.choices[0].message.content
 
             # Log token usage
-            if hasattr(completion, 'usage'):
+            if hasattr(completion, "usage"):
                 print(f"API call successful")
                 print(f"  - Input tokens: {completion.usage.prompt_tokens}")
-                print(
-                    f"  - Output tokens: {completion.usage.completion_tokens}")
+                print(f"  - Output tokens: {completion.usage.completion_tokens}")
                 print(f"  - Total tokens: {completion.usage.total_tokens}")
 
             chunks = self._parse_response(response, text)
 
             # Rate limiting
             if self.rate_limit_delay > 0:
-                print(
-                    f"Rate limiting: waiting {self.rate_limit_delay} seconds...")
+                print(f"Rate limiting: waiting {self.rate_limit_delay} seconds...")
                 time.sleep(self.rate_limit_delay)
 
             return chunks
@@ -154,8 +151,7 @@ Output the chunks now:"""
 
     def _parse_response(self, response: str, original_text: str) -> List[str]:
         """Parse and validate LLM response"""
-        chunks = [chunk.strip()
-                  for chunk in response.split("===CHUNK_SEPARATOR===")]
+        chunks = [chunk.strip() for chunk in response.split("===CHUNK_SEPARATOR===")]
         chunks = [chunk for chunk in chunks if chunk]
 
         if not chunks:
@@ -169,12 +165,14 @@ Output the chunks now:"""
 
         if abs(total_chunk_length - original_length) > original_length * 0.1:
             print(
-                f"Warning: Chunk length mismatch (original: {original_length}, chunks: {total_chunk_length})")
+                f"Warning: Chunk length mismatch (original: {original_length}, chunks: {total_chunk_length})"
+            )
             fallback = FixedSizeChunker(self.target_chunk_size, 50)
             return fallback.chunk(original_text)
 
         print(
-            f"Semantic chunking created {len(chunks)} chunks (avg size: {total_chunk_length//len(chunks)} chars)")
+            f"Semantic chunking created {len(chunks)} chunks (avg size: {total_chunk_length//len(chunks)} chars)"
+        )
         return chunks
 
 
@@ -186,7 +184,7 @@ class DatasetProcessor:
         chunker: TextChunker,
         content_column: str,
         id_column: Optional[str] = None,
-        metadata_columns: Optional[List[str]] = None
+        metadata_columns: Optional[List[str]] = None,
     ):
         """
         Args:
@@ -226,7 +224,8 @@ class DatasetProcessor:
             for chunk_idx, chunk in enumerate(chunks):
                 all_chunks.append(chunk)
                 metadata = self._create_metadata(
-                    row, idx, chunk_idx, len(chunks), chunking_method)
+                    row, idx, chunk_idx, len(chunks), chunking_method
+                )
                 all_metadata.append(metadata)
 
             # Progress indicator
@@ -242,20 +241,21 @@ class DatasetProcessor:
         row_idx: int,
         chunk_idx: int,
         total_chunks: int,
-        chunking_method: str
+        chunking_method: str,
     ) -> Dict:
         """Create metadata dictionary for a chunk"""
         metadata = {
             "chunk_index": chunk_idx,
             "total_chunks": total_chunks,
             "source_row": int(row_idx),
-            "chunking_method": chunking_method
+            "chunking_method": chunking_method,
         }
 
         # Add ID if specified
         if self.id_column and self.id_column in row:
-            metadata["source_id"] = str(row[self.id_column]) if pd.notna(
-                row[self.id_column]) else ""
+            metadata["source_id"] = (
+                str(row[self.id_column]) if pd.notna(row[self.id_column]) else ""
+            )
 
         # Add other metadata columns
         for col in self.metadata_columns:
@@ -282,8 +282,7 @@ class ChromaDBManager:
         self.db_path = db_path
         self.client = chromadb.PersistentClient(path=db_path)
 
-    def get_or_create_collection(
-            self, collection_name: str) -> chromadb.Collection:
+    def get_or_create_collection(self, collection_name: str) -> chromadb.Collection:
         """Get existing collection or create new one"""
         try:
             collection = self.client.get_collection(name=collection_name)
@@ -300,7 +299,7 @@ class ChromaDBManager:
         collection: chromadb.Collection,
         chunks: List[str],
         metadata: List[Dict],
-        batch_size: int = 5000
+        batch_size: int = 5000,
     ) -> None:
         """Add chunks to collection in batches"""
         total_chunks = len(chunks)
@@ -312,9 +311,7 @@ class ChromaDBManager:
             batch_ids = [f"chunk_{j}" for j in range(i, batch_end)]
 
             collection.add(
-                documents=batch_chunks,
-                metadatas=batch_metadata,
-                ids=batch_ids
+                documents=batch_chunks, metadatas=batch_metadata, ids=batch_ids
             )
 
             print(f"Added {batch_end} / {total_chunks} chunks")
@@ -329,7 +326,7 @@ class RAGPipeline:
         self,
         processor: DatasetProcessor,
         db_manager: ChromaDBManager,
-        data_loader: callable
+        data_loader: callable,
     ):
         """
         Args:
@@ -341,7 +338,7 @@ class RAGPipeline:
         self.db_manager = db_manager
         self.data_loader = data_loader
 
-    def debug_mode(self, datapath: str, sep: str = '\t', num_samples: int = 5):
+    def debug_mode(self, datapath: str, sep: str = "\t", num_samples: int = 5):
         """Run in debug mode to inspect chunks"""
         print("\n=== DEBUGGING MODE ===")
         df = self.data_loader(datapath=datapath, sep=sep)
@@ -359,8 +356,8 @@ class RAGPipeline:
         self,
         datapath: str,
         collection_name: str,
-        sep: str = '\t',
-        batch_size: int = 5000
+        sep: str = "\t",
+        batch_size: int = 5000,
     ):
         """Create and populate ChromaDB"""
         print("\n=== CREATING DATABASE ===")
@@ -373,13 +370,12 @@ class RAGPipeline:
             print("Database already populated, skipping insertion")
             return
 
-        self.db_manager.add_chunks(
-            collection, all_chunks, all_metadata, batch_size)
+        self.db_manager.add_chunks(collection, all_chunks, all_metadata, batch_size)
 
 
 # Example usage
 if __name__ == "__main__":
-    from util import read_data, download_data
+    from util import read_data
 
     load_dotenv()
     groq_apikey = os.getenv("GROQ_API_KEY")
@@ -398,7 +394,7 @@ if __name__ == "__main__":
         chunker=chunker,
         content_column="content",
         id_column=None,
-        metadata_columns=['category', 'filename', 'title']
+        metadata_columns=["category", "filename", "title"],
     )
 
     # Create DB manager
@@ -406,17 +402,11 @@ if __name__ == "__main__":
 
     # Create pipeline
     pipeline = RAGPipeline(
-        processor=processor,
-        db_manager=db_manager,
-        data_loader=read_data
+        processor=processor, db_manager=db_manager, data_loader=read_data
     )
 
     # Run in debug mode
-    pipeline.debug_mode(
-        datapath="bbc-news.csv",
-        sep='\t',
-        num_samples=5
-    )
+    pipeline.debug_mode(datapath="bbc-news.csv", sep="\t", num_samples=5)
 
     # Or create database
     # pipeline.create_database(

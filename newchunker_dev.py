@@ -5,7 +5,10 @@ model_name = "meta-llama/Llama-3.2-3B-Instruct"
 
 # 只下載模型和 tokenizer 到本地
 AutoTokenizer.from_pretrained(model_name, cache_dir="./llama3_model")
-AutoModelForCausalLM.from_pretrained(model_name, cache_dir="./llama3_model", low_cpu_mem_usage=True)
+AutoModelForCausalLM.from_pretrained(
+    model_name,
+    cache_dir="./llama3_model",
+    low_cpu_mem_usage=True)
 
 # 先讀 config
 config = AutoConfig.from_pretrained(model_name)

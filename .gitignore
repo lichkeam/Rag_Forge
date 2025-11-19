@@ -1,0 +1,27 @@
+# API Keys and Secrets
+api_key.txt
+.env
+*.key
+
+# Large data files
+wiki_movie_plots.txt
+wiki_movie_plots_deduped.csv
+*.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ChromaDB
+chroma_db/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

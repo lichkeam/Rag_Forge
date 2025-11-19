@@ -12,3 +12,5 @@ jobs:
         run: echo "Hello World"
       - name: Show current time
         run: date
+      - name: Checkout code
+        uses: actions/checkout@v4

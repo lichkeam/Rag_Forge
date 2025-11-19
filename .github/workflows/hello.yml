@@ -8,11 +8,19 @@ jobs:
   say-hello:
     runs-on: ubuntu-latest
     steps:
-      - name: Print hello
-        run: echo "Hello World"
+
       - name: Show current time
         run: date
       - name: Checkout code
         uses: actions/checkout@v4
       - name: List files
         run: ls -la
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build Docker image
+        run: docker build -t lichkeam/rag:test .
+      - name: Push to Docker Hub
+        run: docker push tonyhsu/rag:test

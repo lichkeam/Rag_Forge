@@ -10,3 +10,5 @@ jobs:
     steps:
       - name: Print hello
         run: echo "Hello World"
+      - name: Show current time
+        run: date

@@ -1,0 +1,4 @@
+[flake8]
+max-line-length = 200
+extend-ignore = F541
+exclude = venv,__pycache__,chroma_db,.git

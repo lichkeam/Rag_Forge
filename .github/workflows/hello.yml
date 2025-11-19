@@ -23,4 +23,4 @@ jobs:
       - name: Build Docker image
         run: docker build -t lichkeam/rag:test .
       - name: Push to Docker Hub
-        run: docker push tonyhsu/rag:test
+        run: docker push lichkeam/rag:test

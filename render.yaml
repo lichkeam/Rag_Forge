@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: rag-pipeline-api
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: PORT
+        value: 8080
+    
+    disk:
+      name: chromadb-data
+      mountPath: /app/chroma_db
+      sizeGB: 1

@@ -379,6 +379,7 @@ if __name__ == "__main__":
 
     load_dotenv()
     groq_apikey = os.getenv("GROQ_API_KEY")
+    PORT = int(os.getenv('PORT', 8080))
 
     # Choose chunking strategy
     chunker = FixedSizeChunker(chunk_size=500, overlap=50)
